@@ -30,15 +30,15 @@ where = ["src"]
 
 [project]
 name = "lighteval"
-version = "0.7.0"
+version = "0.8.0"
 authors = [
-  { name="Clémentine Fourrier", email="clementine@huggingface.com" },
   { name="Nathan Habib", email="nathan.habib@huggingface.com" },
+  { name="Clémentine Fourrier", email="clementine@huggingface.com" },
   { name="Thomas Wolf", email="thom@huggingface.com" },
 ]
 maintainers = [
-  { name="Clémentine Fourrier", email="clementine@huggingface.com" },
   { name="Nathan Habib", email="nathan.habib@huggingface.com" },
+  { name="Clémentine Fourrier", email="clementine@huggingface.com" },
 ]
 description = "A lightweight and configurable evaluation package"
 readme = "README.md"
@@ -57,7 +57,7 @@ dependencies = [
     "transformers>=4.38.0",
     "accelerate",
     "huggingface_hub>=0.23.0",
-    "torch>=2.0,<2.6",
+    "torch>=2.0,<3.0",
     "GitPython>=3.1.41", # for logging
     "datasets>=2.14.0",
     "numpy<2",  # pinned to avoid incompatibilities
@@ -72,7 +72,6 @@ dependencies = [
     # Base metrics
     "nltk==3.9.1",
     "scikit-learn",
-    "spacy==3.7.2",
     "sacrebleu",
     "rouge_score==0.1.2",
     "sentencepiece>=0.1.99",
@@ -83,7 +82,7 @@ dependencies = [
 
 [project.optional-dependencies]
 litellm = ["litellm", "diskcache"]
-tgi = ["text-generation==0.6.0"]
+tgi = ["text-generation>=0.6.0"]
 optimum = ["optimum==1.12.0"]
 quantization = ["bitsandbytes>=0.41.0", "auto-gptq>=0.4.2"]
 adapters = ["peft==0.3.0"]
@@ -92,10 +91,10 @@ nanotron = [
   "tensorboardX"
 ]
 tensorboardX = ["tensorboardX"]
-vllm = ["vllm==0.7.0", "ray", "more_itertools"]
+vllm = ["vllm>=0.7.0", "ray", "more_itertools"]
 quality = ["ruff==v0.2.2","pre-commit"]
 tests = ["pytest==7.4.0"]
-dev = ["lighteval[accelerate,quality,tests,multilingual]"]
+dev = ["lighteval[accelerate,quality,tests,multilingual,math,extended_tasks]"]
 docs = ["hf-doc-builder", "watchdog"]
 extended_tasks = [
   "langdetect", # ifeval
@@ -109,6 +108,7 @@ multilingual = [
     "jieba", # for chinese tokenizer
     "pyvi", # for vietnamese tokenizer
 ]
+math = ["latex2sympy2_extended==1.0.6"]
 
 [project.urls]
 Homepage = "https://github.com/huggingface/lighteval"

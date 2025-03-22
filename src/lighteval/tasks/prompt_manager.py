@@ -29,6 +29,7 @@ from itertools import cycle
 from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 from lighteval.models.abstract_model import LightevalModel
+from lighteval.models.endpoints.inference_providers_model import InferenceProvidersClient
 from lighteval.models.litellm_model import LiteLLMClient
 from lighteval.tasks.requests import Doc
 from lighteval.utils.utils import as_list
@@ -132,7 +133,7 @@ class PromptManager:
         Multi turn tasks need use chat templating.
 
         Args:
-            doc (Doc): Formated document.
+            doc (Doc): Formatted document.
             use_chat_template (bool): wether or not to use chat template. Will fail if false.
             system_prompt (Optional[str]): The system prompt to use
             tokenizer (PreTrainedTokenizer): The tokenizer used for the chat template
@@ -234,7 +235,7 @@ class PromptManager:
                     toks = [self.model.tok_encode(msg["content"]) for msg in output]
                     toks = [t for ts in toks for t in ts]
 
-        if isinstance(self.model, LiteLLMClient):
+        if type(self.model) in [LiteLLMClient, InferenceProvidersClient]:
             return output, num_effective_fewshots
 
         elif use_chat_template:

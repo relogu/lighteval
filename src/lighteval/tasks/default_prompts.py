@@ -43,6 +43,24 @@ INTEGER_INDICES = list(map(str, list(range(1, 27))))
 # fmt: on
 
 
+def aime_prompt_fn(line, task_name: str = None):
+    # Prompt template adapted from
+    # - simple-evals: https://github.com/openai/simple-evals/blob/6e84f4e2aed6b60f6a0c7b8f06bbbf4bfde72e58/math_eval.py#L17
+    # - Llama 3: https://huggingface.co/datasets/meta-llama/Llama-3.2-1B-Instruct-evals/viewer/Llama-3.2-1B-Instruct-evals__math__details?views%5B%5D=llama_32_1b_instruct_evals__math__details
+    # Note that it is important to have the final answer in a box for math-verify to work correctly
+    MATH_QUERY_TEMPLATE = """
+Solve the following math problem efficiently and clearly.  The last line of your response should be of the following format: 'Therefore, the final answer is: $\\boxed{{ANSWER}}$. I hope it is correct' (without quotes) where ANSWER is just the final number or expression that solves the problem. Think step by step before answering.
+
+{Question}
+""".strip()
+    return Doc(
+        task_name=task_name,
+        query=MATH_QUERY_TEMPLATE.format(Question=line["problem"]),
+        choices=[line["answer"]],
+        gold_index=0,
+    )
+
+
 def anli(line, task_name: str = None):
     return Doc(
         task_name=task_name,
@@ -120,7 +138,7 @@ def asdiv(line, task_name: str = None):
 
 def babi_qa(line, task_name: str = None):  # HELM
     def process_path(path: str) -> str:
-        """Turn a path string (task 19) from the original format 's,w' to a verbal model-friendly format 'south west'"""
+        """Turn a path string (task 19) from the original format 's,w' into a verbal model-friendly format 'south west'"""
         steps = path.split(",")
         directions = {"s": "south", "n": "north", "e": "east", "w": "west"}
         path = " ".join([directions[step] for step in steps])
@@ -281,7 +299,7 @@ def bbh_logical_deduction_three_objects(line, task_name: str = None):
 def bbh_movie_recommendation(line, task_name: str = None):
     if line["target"] == "Monsters, Inc":  # this line is not correctly formatted
         logger.warning(
-            "One sample removed from task bbh:movie_recommentation because its line is incorrectly formatted."
+            "One sample removed from task bbh:movie_recommendation because its line is incorrectly formatted."
         )
         return []
     instruction = "Recommend movies similar to the given list of movies.\n\n"
@@ -500,7 +518,7 @@ def civil_comments(line, task_name: str = None):
 def cnn_dm(line, task_name: str = None):
     return Doc(
         task_name=task_name,
-        query=f"###\nArticle:{line['article']}\n\nSummarize the above article in 3 sentence.\n",
+        query=f"###\nArticle:{line['article']}\n\nSummarize the above article in 3 sentences.\n",
         choices=[str(line["summary"])],
         gold_index=0,
         specific={"text": line["article"]},
@@ -710,27 +728,53 @@ def ethics_virtue(line, task_name: str = None):
 
 
 def gpqa(line, task_name: str = None):
+    # Prompt template from simple-evals: https://github.com/openai/simple-evals/blob/83ed7640a7d9cd26849bcb3340125002ef14abbe/common.py#L14
+    GPQA_QUERY_TEMPLATE = """
+Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.
+
+{Question}
+
+A) {A}
+B) {B}
+C) {C}
+D) {D}
+""".strip()
     gold_index = random.randint(0, 3)
     choices = [line["Incorrect Answer 1"], line["Incorrect Answer 2"], line["Incorrect Answer 3"]]
     choices.insert(gold_index, line["Correct Answer"])
 
-    instruction = "Select the correct answer to the following questions.\n\n"
-
-    query = f"Question: {line['Question']}\n"
-    query += "".join([f"{key}. {choice}\n" for key, choice in zip(LETTER_INDICES, choices)])
-    query += "Answer: "
+    query = GPQA_QUERY_TEMPLATE.format(
+        A=choices[0], B=choices[1], C=choices[2], D=choices[3], Question=line["Question"]
+    )
 
     return Doc(
         task_name=task_name,
-        query=f"{instruction}{query}",
+        query=query,
         choices=LETTER_INDICES[: len(choices)],
         gold_index=gold_index,
-        instruction=instruction,
+        instruction=query,
+    )
+
+
+def gpqa_instruct(line, task_name: str = None):
+    """Prompt template adapted from simple-evals: https://github.com/openai/simple-evals/blob/83ed7640a7d9cd26849bcb3340125002ef14abbe/common.py#L14"""
+    gold_index = random.randint(0, 3)
+    choices = [line["Incorrect Answer 1"], line["Incorrect Answer 2"], line["Incorrect Answer 3"]]
+    choices.insert(gold_index, line["Correct Answer"])
+    query_template = "Answer the following multiple choice question. The last line of your response should be of the following format: 'Answer: $LETTER' (without quotes) where LETTER is one of ABCD. Think step by step before answering.\n\n{Question}\n\nA) {A}\nB) {B}\nC) {C}\nD) {D}"
+    query = query_template.format(A=choices[0], B=choices[1], C=choices[2], D=choices[3], Question=line["Question"])
+
+    return Doc(
+        task_name=task_name,
+        query=query,
+        choices=LETTER_INDICES[: len(choices)],
+        gold_index=gold_index,
+        instruction=query,
     )
 
 
 def gsm8k(line, task_name: str = None):
-    # Has special analysis in metric for number decomposiition
+    # Has special analysis in metric for number decomposition
     return Doc(
         task_name=task_name,
         query=f"Question: {line['question']}\nAnswer:",
@@ -1237,6 +1281,25 @@ def lsat_qa(line, task_name: str = None):
         choices=LETTER_INDICES[: len(line["references"])],
         gold_index=line["gold_index"],
         instruction="The following are multiple choice questions (with answers).\n",
+    )
+
+
+def math_500(line, task_name: str = None):
+    # Prompt template adapted from
+    # - simple-evals: https://github.com/openai/simple-evals/blob/6e84f4e2aed6b60f6a0c7b8f06bbbf4bfde72e58/math_eval.py#L17
+    # - Llama 3: https://huggingface.co/datasets/meta-llama/Llama-3.2-1B-Instruct-evals/viewer/Llama-3.2-1B-Instruct-evals__math__details?views%5B%5D=llama_32_1b_instruct_evals__math__details
+    # Note that it is important to have the final answer in a box for math-verify to work correctly
+    MATH_QUERY_TEMPLATE = """
+Solve the following math problem efficiently and clearly.  The last line of your response should be of the following format: 'Therefore, the final answer is: $\\boxed{{ANSWER}}$. I hope it is correct' (without quotes) where ANSWER is just the final number or expression that solves the problem. Think step by step before answering.
+
+{Question}
+""".strip()
+
+    return Doc(
+        task_name=task_name,
+        query=MATH_QUERY_TEMPLATE.format(Question=line["problem"]),
+        gold_index=0,
+        choices=[line["solution"]],
     )
 
 
@@ -2076,7 +2139,7 @@ def rte(line, task_name: str = None):
     return Doc(
         task_name=task_name,
         query=f"{line['sentence1']}\nQuestion: {line['sentence2']} True or False?\nAnswer:",
-        choices=[" True", " False"],  # 0 = entailement, 1 = not entailment
+        choices=[" True", " False"],  # 0 = entailment, 1 = not entailment
         gold_index=int(line["label"]),
         # "metric": "choices_loglikelihood",
     )
